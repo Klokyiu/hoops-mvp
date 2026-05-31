@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BallerStats V6.0 - Ultimate Production Demo</title>
+    <style>
+        :root {
+            --bg-main: #0b0d0f;       /* 極簡工裝深黑 */
+            --bg-card: #14181c;       /* 面板黑灰 */
+            --orange-strava: #fc4c02; /* 運動橙 */
+            --border-color: #1e242b;  /* 邊框 */
+            --text-white: #ffffff;
+            --text-muted: #5f6e7c;
+            --win-green: #2ecc71;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #1a1e24;
+            color: var(--text-white);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 模擬智能手機外殼 Frame */
+        .phone-wrapper {
+            width: 393px;
+            height: 852px;
+            background-color: var(--bg-main);
+            border-radius: 40px;
+            box-shadow: 0 30px 70px rgba(0,0,0,0.8);
+            border: 8px solid #2d353f;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status-bar {
+            height: 30px;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        .island { width: 110px; height: 18px; background: #111; border-radius: 20px; }
+
+        .app-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px 80px 16px;
+            display: none;
+        }
+        .app-container.active { display: block; }
+
+        /* ==================== TAB 1: 個人主頁 PROFILE ==================== */
+        .profile-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .user-meta h1 { margin: 0; font-size: 24px; font-weight: 900; }
+        .user-meta p { margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted); }
+        
+        .league-selector {
+            background: var(--bg-card); border: 1px solid var(--border-color); padding: 10px;
+            border-radius: 12px; font-size: 13px; font-weight: bold; color: var(--text-white); width: 100%; margin-bottom: 15px;
+        }
+
+        .ovr-dashboard {
+            background: var(--bg-card); border-radius: 16px; padding: 15px; border: 1px solid var(--border-color);
+            display: flex; align-items: center; gap: 15px; margin-bottom: 15px;
+        }
+        .giant-ovr {
+            width: 70px; height: 70px; background: #000; border: 2px solid var(--orange-strava);
+            border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .giant-ovr .num { font-size: 28px; font-weight: 900; }
+        .giant-ovr .lbl { font-size: 8px; color: var(--orange-strava); font-weight: bold; }
+        
+        .stats-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; }
+        .summary-node { display: flex; flex-direction: column; }
+        .summary-node .slbl { font-size: 10px; color: var(--text-muted); font-weight: bold; }
+        .summary-node .sval { font-size: 18px; font-weight: 900; }
+
+        .profile-radar-area {
+            background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color);
+            padding: 15px; display: flex; flex-direction: column; align-items: center; margin-bottom: 15px;
+        }
+
+        /* ==================== TAB 2: 全月日曆 CALENDAR ==================== */
+        .calendar-grid {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+            background: var(--bg-card); padding: 10px; border-radius: 16px; border: 1px solid var(--border-color);
+        }
+        .calendar-day-lbl { font-size: 10px; text-align: center; color: var(--text-muted); font-weight: bold; padding: 4px 0; }
+        .calendar-cell {
+            height: 42px; background: rgba(255,255,255,0.01); border-radius: 8px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #444; cursor: pointer; position: relative;
+        }
+        .calendar-cell.current-month { color: var(--text-white); }
+        .calendar-cell.has-game { background: rgba(252,76,2,0.1); border: 1px solid rgba(252,76,2,0.3); }
+        .calendar-cell.has-game::after { content: ''; width: 4px; height: 4px; background: var(--orange-strava); border-radius: 50%; position: absolute; bottom: 4px; }
+
+        .match-report-card { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); padding: 15px; margin-top: 15px; }
+        .match-score-row { display: flex; justify-content: space-between; align-items: center; font-weight: 900; font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 10px; }
+
+        /* 新增：相片上傳與備註區域 */
+        .capsule-media-section {
+            display: flex; gap: 10px; margin-top: 12px;
+        }
+        .photo-uploader-box {
+            flex: 1; height: 75px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border-color); border-radius: 8px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted); cursor: pointer;
+        }
+        .photo-uploader-box.has-img { background-size: cover; background-position: center; }
+        .notes-input-box {
+            flex: 1.5; height: 75px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 8px;
+            padding: 8px; box-sizing: border-box; color: #fff; font-size: 11px; resize: none; font-family: inherit;
+        }
+        .notes-input-box:focus { border-color: var(--orange-strava); outline: none; }
+
+        .coach-panel-box { background: #1c2127; border-radius: 10px; padding: 12px; margin-top: 12px; border: 1px dashed rgba(252,76,2,0.2); }
+        .coach-btn { background: var(--orange-strava); color: #fff; border: none; padding: 8px; font-size: 11px; font-weight: bold; border-radius: 6px; cursor: pointer; margin-top: 8px; width: 100%; }
+
+        /* ==================== TAB 3: 數據錄入 (清晰分流) ==================== */
+        .input-hub-title { font-size: 18px; font-weight: 900; margin-bottom: 15px; }
+        .input-card-route {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px;
+            padding: 20px; margin-bottom: 15px; cursor: pointer; display: flex; align-items: center; gap: 15px; transition: border-color 0.2s;
+        }
+        .input-card-route:hover { border-color: var(--orange-strava); }
+        .route-icon { font-size: 28px; }
+        .route-info h3 { margin: 0; font-size: 15px; font-weight: 800; }
+        .route-info p { margin: 4px 0 0 0; font-size: 11px; color: var(--text-muted); }
+
+        /* ==================== 🎬 終極大一統：IG STORY 三版去背可縮放編輯器 ==================== */
+        .canvas-editor-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-main); z-index: 200; display: none; flex-direction: column;
+        }
+        .editor-header { padding: 12px 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: bold; background: #000; }
+        
+        .slide-selector-tabs { display: flex; gap: 4px; background: #14181c; padding: 4px; border-radius: 8px; }
+        .slide-tab-btn { background: none; border: none; color: var(--text-muted); font-size: 11px; font-weight: bold; padding: 4px 8px; cursor: pointer; border-radius: 4px; }
+        .slide-tab-btn.active { background: var(--orange-strava); color: #fff; }
+
+        /* 9:16 純黑無雜質畫布 */
+        .canvas-viewport { flex: 1; background: #000; position: relative; overflow: hidden; box-sizing: border-box; padding: 40px 30px; }
+
+        /* 縮放與移動矩陣外殼 (Strava Touch Engine) */
+        .zoom-pan-container {
+            position: absolute; top: 40px; left: 30px; width: 333px; height: 520px;
+            transform-origin: center center; cursor: grab; z-index: 10;
+        }
+        .zoom-pan-container:active { cursor: grabbing; }
+
+        .slide-panel { width: 100%; height: 100%; position: relative; display: none; pointer-events: none; }
+        .slide-panel.active { display: block; }
+
+        /* --- 版面一：四項數據垂直平均排列（去背、動態自動重排） --- */
+        .vertical-stats-container {
+            width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; padding: 30px 0;
+        }
+        .pure-tile-stat { position: relative; background: none; border: none; padding: 0; width: 100%; transition: all 0.3s ease; }
+        .pure-tile-stat .lbl { font-size: 10px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
+        .pure-tile-stat .val { font-size: 42px; font-weight: 900; line-height: 1.1; margin-top: 2px; font-family: sans-serif; }
+        .pure-tile-stat .x-btn { position: absolute; right: 0; top: 10px; color: var(--text-muted); font-size: 14px; cursor: pointer; pointer-events: auto; padding: 5px; z-index: 99; }
+        .pure-tile-stat .x-btn:hover { color: #ff4d4d; }
+
+        /* --- 版面二：五角能力值（100%去背） --- */
+        .radar-center-layout { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .pure-radar-tile { position: relative; width: 220px; height: 220px; background: none; border: none; }
+        .radar-ovr { position: absolute; top: 88px; left: 88px; width: 44px; height: 44px; background: #000; border: 1px solid var(--orange-strava); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; }
+
+        /* --- 版面三：AI 評語部份（去背） --- */
+        .comment-center-layout { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .pure-comment-tile { background: none; border: none; border-left: 2px solid var(--orange-strava); padding: 15px 0 15px 15px; width: 100%; }
+        .pure-comment-tile p { margin: 0; font-size: 14px; line-height: 1.6; color: #e1e7ed; font-weight: 500; }
+
+        /* 編輯器底部的縮放滑桿與提示 */
+        .editor-slider-bar {
+            background: #14181c; padding: 12px 20px; border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 15px; font-size: 11px;
+        }
+        .editor-slider-bar input { flex: 1; accent-color: var(--orange-strava); }
+
+        /* 畫布固定底部（無地點、無時間、僅留商標） */
+        .canvas-fixed-footer {
+            position: absolute; bottom: 30px; left: 30px; right: 30px;
+            border-top: 1px solid var(--border-color); padding-top: 12px;
+            display: flex; justify-content: space-between; align-items: center; pointer-events: none; z-index: 50;
+        }
+        .brand-logo { font-size: 14px; font-weight: 900; letter-spacing: -0.5px; }
+        .brand-logo span { color: var(--orange-strava); }
+
+        /* 底部固定導航 BAR */
+        .bottom-nav {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 68px;
+            background-color: rgba(11, 13, 15, 0.98); border-top: 1px solid var(--border-color);
+            display: flex; justify-content: space-around; align-items: center; z-index: 150; padding-bottom: 12px;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-muted); font-size: 10px; font-weight: bold; cursor: pointer; width: 60px; }
+        .nav-item.active { color: var(--orange-strava); }
+        .nav-icon { font-size: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="phone-wrapper">
+    <!-- 靈動島狀態欄 -->
+    <div class="status-bar"><div class="island"></div></div>
+
+    <!-- ==================== TAB 1: 個人主頁 PROFILE ==================== -->
+    <div id="tab-profile" class="app-container active">
+        <div class="profile-header">
+            <div class="user-meta">
+                <h1>偉仔 (A-Ming)</h1>
+                <p>位置：後衛 Guard</p>
+            </div>
+            <div style="background: var(--border-color); padding: 5px 10px; border-radius: 20px; font-size: 10px; font-weight: bold;">P-PLATE</div>
+        </div>
+
+        <select class="league-selector" onchange="toggleProfileView(this.value)">
+            <option value="pro">🏆 修頓聯賽 (A) [代表球隊：青峰隊]</option>
+            <option value="basic">🏫 中學學界分組賽 [代表球隊：英華書院]</option>
+        </select>
+
+        <div class="ovr-dashboard">
+            <div class="giant-ovr">
+                <span class="num" id="main-ovr-val">84</span>
+                <span class="lbl">OVR</span>
+            </div>
+            <div class="stats-summary-grid">
+                <div class="summary-node"><span class="slbl">場均得分 PPG</span><span class="sval" id="main-ppg-val">18.5</span></div>
+                <div class="summary-node"><span class="slbl">場均犯規 FPG</span><span class="sval" id="main-fpg-val">2.8</span></div>
+            </div>
+        </div>
+
+        <!-- 2K 核心五角能力值看板（還原至個人主頁） -->
+        <div class="dynamic-analytics-title">📊 生涯核心戰力大盤</div>
+        <div class="profile-radar-area" id="main-radar-node">
+            <svg width="200" height="200" viewBox="0 0 220 220">
+                <polygon points="110,20 200,85 165,190 55,190 20,85" fill="none" stroke="#2c353f" stroke-width="1"/>
+                <polygon points="110,50 170,95 145,160 75,160 50,95" fill="none" stroke="#2c353f" stroke-width="1"/>
+                <line x1="110" y1="110" x2="110" y2="20" stroke="#2c353f" stroke-width="1"/>
+                <line x1="110" y1="110" x2="200" y2="85" stroke="#2c353f" stroke-width="1"/>
+                <line x1="110" y1="110" x2="165" y2="190" stroke="#2c353f" stroke-width="1"/>
+                <line x1="110" y1="110" x2="55" y2="190" stroke="#2c353f" stroke-width="1"/>
+                <line x1="110" y1="110" x2="20" y2="85" stroke="#2c353f" stroke-width="1"/>
+                <polygon points="110,35 185,90 145,160 75,160 35,95" fill="rgba(252,76,2,0.05)" stroke="var(--orange-strava)" stroke-width="2"/>
+                <text x="110" y="14" fill="#fff" font-size="10" font-weight="bold" text-anchor="middle">得分 A</text>
+                <text x="204" y="88" fill="#fff" font-size="10" font-weight="bold" text-anchor="start">速度 A+</text>
+                <text x="170" y="202" fill="#5f6e7c" font-size="10" font-weight="bold" text-anchor="middle">防守 B</text>
+                <text x="50" y="202" fill="#fff" font-size="10" font-weight="bold" text-anchor="middle">體能 A</text>
+                <text x="14" y="88" fill="#fff" font-size="10" font-weight="bold" text-anchor="end">組織 A-</text>
+            </svg>
+        </div>
+
+        <div id="pro-advanced-logs">
+            <div style="background:var(--bg-card); padding:12px; border-radius:10px; border:1px solid var(--border-color); display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
+                <span style="color:var(--text-muted); font-weight:bold;">真實命中率 TS%</span><span style="font-weight:900; color:var(--orange-strava);">62.0%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 2: 全月日曆 CALENDAR ==================== -->
+    <div id="tab-calendar" class="app-container">
+        <div class="calendar-title-bar">
+            <h2 style="margin:0; font-size:20px; font-weight:900;">2026年 5月</h2>
+            <span style="font-size:11px; font-weight:bold; color:var(--orange-strava);">全月顯示</span>
+        </div>
+
+        <div class="calendar-grid">
+            <div class="calendar-day-lbl">日</div><div class="calendar-day-lbl">一</div><div class="calendar-day-lbl">二</div><div class="calendar-day-lbl">三</div><div class="calendar-day-lbl">四</div><div class="calendar-day-lbl">五</div><div class="calendar-day-lbl">六</div>
+            <div class="calendar-cell"></div><div class="calendar-cell"></div><div class="calendar-cell"></div><div class="calendar-cell"></div><div class="calendar-cell"></div>
+            <div class="calendar-cell current-month">1</div><div class="calendar-cell current-month">2</div>
+            <div class="calendar-cell current-month">3</div><div class="calendar-cell current-month">4</div><div class="calendar-cell current-month">5</div><div class="calendar-cell current-month">6</div><div class="calendar-cell current-month">7</div><div class="calendar-cell current-month">8</div><div class="calendar-cell current-month">9</div>
+            <div class="calendar-cell current-month">10</div><div class="calendar-cell current-month">11</div><div class="calendar-cell current-month">12</div><div class="calendar-cell current-month">13</div><div class="calendar-cell current-month">14</div><div class="calendar-cell current-month">15</div><div class="calendar-cell current-month">16</div>
+            <div class="calendar-cell current-month">17</div><div class="calendar-cell current-month">18</div><div class="calendar-cell current-month">19</div><div class="calendar-cell current-month">20</div><div class="calendar-cell current-month">21</div><div class="calendar-cell current-month">22</div><div class="calendar-cell current-month">23</div>
+            <div class="calendar-cell current-month">24</div><div class="calendar-cell current-month">25</div><div class="calendar-cell current-month">26</div><div class="calendar-cell current-month">27</div><div class="calendar-cell current-month">28</div><div class="calendar-cell current-month">29</div>
+            <div class="calendar-cell current-month has-game" onclick="openMatchNode()">30</div>
+            <div class="calendar-cell current-month">31</div>
+        </div>
+
+        <!-- 5月30日 戰報細節卡 -->
+        <div class="match-report-card" id="calendar-match-card" style="display: none;">
+            <div class="match-score-row">
+                <span style="font-size:12px; color:var(--text-muted);">修頓聯賽 (A)</span>
+                <span>青峰隊 82 : 75 烈火隊</span>
+                <span style="font-size:11px; color:var(--win-green);">WIN</span>
+            </div>
+            <div style="font-size:12px; color:#cbd5e1;">📊 物理數據：22 PTS | 4 3PM | 5 AST | 4 Fouls</div>
+            
+            <!-- 補回功能：相片時空膠囊與打字備註區域 -->
+            <div class="capsule-media-section">
+                <div class="photo-uploader-box" id="media-box" onclick="simulatePhotoUpload()">
+                    <span id="upload-icon">📸</span>
+                    <span id="upload-text" style="margin-top:2px;">上傳賽事相片</span>
+                </div>
+                <textarea class="notes-input-box" placeholder="📝 輸入今場賽事筆記或備註..."></textarea>
+            </div>
+
+            <button class="coach-btn" style="background:#222; border:1px solid var(--border-color); margin-top:12px;" onclick="openCanvasEditor()">🎨 進入 Strava 自由縮放去背分享面板</button>
+            
+            <!-- 控制台：減走交隊費，保留出席率 -->
+            <div class="coach-panel-box">
+                <div style="font-size:11px; font-weight:bold; color:var(--orange-strava);">📋 領隊/教練控制台</div>
+                <div style="background:rgba(255,255,255,0.02); padding:10px; border-radius:8px; margin-top:8px;">
+                    <div style="font-size:11px; font-weight:bold; margin-bottom:6px; color:#fff;">📅 下場賽事球員出席意向統計：</div>
+                    <div style="display:flex; justify-content:space-between; font-size:11px;">
+                        <span style="color:var(--win-green);">✓ 出席 (9人): 偉、榮、銘、強...</span>
+                        <span style="color:#ff4d4d;">✕ 缺席 (2人): 軒、波</span>
+                    </div>
+                </div>
+                <button class="coach-btn" onclick="alert('賽後檢討報告已複製！格式完美適配 WhatsApp！')">🔗 生成 AI 賽後 WhatsApp 戰術檢討報告</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 3: 數據錄入 SCAN (拍照/手動分流) ==================== -->
+    <div id="tab-scan" class="app-container">
+        <div class="input-hub-title">⚡ 新增賽事數據</div>
+        
+        <!-- 路由一：拍照影相 -->
+        <div class="input-card-route" onclick="alert('📸 已啟動相機與相簿：請拍攝大會記分紙。')">
+            <div class="route-icon">📸</div>
+            <div class="route-info">
+                <h3>影相 / 上傳官方 Box Score</h3>
+                <p>支援拍照或截圖，AI 自動提取數據並智能歸類分發。</p>
+            </div>
+        </div>
+
+        <!-- 路由二：手動輸入 -->
+        <div class="input-card-route" onclick="alert('✍️ 已開啟手動硬核錄入面板。')">
+            <div class="route-icon">✍️</div>
+            <div class="route-info">
+                <h3>手動硬核錄入</h3>
+                <p>適合大會無提供數據之練習賽或街賽，快速記錄關鍵指標。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 🎬 終極大一統：IG STORY 三版滑動去背編輯器 ==================== -->
+    <div class="canvas-editor-overlay" id="canvas-editor-node">
+        <div class="editor-header">
+            <div class="slide-selector-tabs">
+                <button class="slide-tab-btn active" id="btn-slide-0" onclick="switchSlide(0)">1. 數據垂直重排</button>
+                <button class="slide-tab-btn" id="btn-slide-1" onclick="switchSlide(1)">2. 五角去背圖</button>
+                <button class="slide-tab-btn" id="btn-slide-2" onclick="switchSlide(2)">3. AI 評語膠囊</button>
+            </div>
+            <button class="btn-close-editor" onclick="closeCanvasEditor()">完成</button>
+        </div>
+
+        <!-- 9:16 純黑無雜質畫布 -->
+        <div class="canvas-viewport">
+            
+            <!-- Strava 核心矩陣外殼 (控制整體放大縮小、自由拖拽) -->
+            <div class="zoom-pan-container" id="zoom-pan-target" onmousedown="startCanvasDrag(event)" ontouchstart="startCanvasDrag(event)">
+                
+                <!-- Slide 1: 四項數據垂直平均排列（去背、動態重排） -->
+                <div class="slide-panel active" id="slide-panel-0">
+                    <div class="vertical-stats-container" id="vertical-stack">
+                        <div class="pure-tile-stat" id="tile-pts">
+                            <span class="x-btn" onclick="removeVerticalItem('tile-pts')">✕</span>
+                            <span class="lbl">得分 PTS</span>
+                            <span class="val">22</span>
+                        </div>
+                        <div class="pure-tile-stat" id="tile-3pm">
+                            <span class="x-btn" onclick="removeVerticalItem('tile-3pm')">✕</span>
+                            <span class="lbl">三分 3PM</span>
+                            <span class="val">4</span>
+                        </div>
+                        <div class="pure-tile-stat" id="tile-ast">
+                            <span class="x-btn" onclick="removeVerticalItem('tile-ast')">✕</span>
+                            <span class="lbl">助攻 AST</span>
+                            <span class="val">5</span>
+                        </div>
+                        <div class="pure-tile-stat" id="tile-ts">
+                            <span class="x-btn" onclick="removeVerticalItem('tile-ts')">✕</span>
+                            <span class="lbl">真實命中率 TS%</span>
+                            <span class="val">62%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 2: 五角能力值（100%去背） -->
+                <div class="slide-panel" id="slide-panel-1">
+                    <div class="radar-center-layout">
+                        <div class="pure-radar-tile">
+                            <svg width="220" height="220" viewBox="0 0 220 220">
+                                <polygon points="110,20 200,85 165,190 55,190 20,85" fill="none" stroke="#22262c" stroke-width="1"/>
+                                <polygon points="110,50 170,95 145,160 75,160 50,95" fill="none" stroke="#22262c" stroke-width="1"/>
+                                <line x1="110" y1="110" x2="110" y2="20" stroke="#22262c" stroke-width="1"/>
+                                <line x1="110" y1="110" x2="200" y2="85" stroke="#22262c" stroke-width="1"/>
+                                <line x1="110" y1="110" x2="165" y2="190" stroke="#22262c" stroke-width="1"/>
+                                <polygon points="110,35 185,90 145,160 75,160 35,95" fill="rgba(252,76,2,0.04)" stroke="var(--orange-strava)" stroke-width="2"/>
+                                <text x="110" y="14" fill="#fff" font-size="10" font-weight="bold" text-anchor="middle">得分 A</text>
+                                <text x="204" y="88" fill="#fff" font-size="10" font-weight="bold" text-anchor="start">速度 A+</text>
+                                <text x="170" y="202" fill="#5f6e7c" font-size="10" font-weight="bold" text-anchor="middle">防守 B</text>
+                                <text x="50" y="202" fill="#fff" font-size="10" font-weight="bold" text-anchor="middle">體能 A</text>
+                                <text x="14" y="88" fill="#fff" font-size="10" font-weight="bold" text-anchor="end">組織 A-</text>
+                            </svg>
+                            <div class="radar-ovr">84</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3: AI 評語部份（100%去背） -->
+                <div class="slide-panel" id="slide-panel-2">
+                    <div class="comment-center-layout">
+                        <div class="pure-comment-tile">
+                            <p>「偉仔今場完美示範了何謂『高效指揮官』。你在高壓防守下維持極佳的決策球商，全場攻下 22 分與 5 次助攻，高達 62% 的真實命中率徹底瓦解了對方的防線。」</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 固定最底部（完全無時間地點雜質，僅留商標） -->
+            <div class="canvas-fixed-footer">
+                <div class="brand-logo">BALLER<span>STATS</span></div>
+                <div style="font-size: 9px; color: var(--text-muted); font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase;">STRAVA ENGINE</div>
+            </div>
+
+        </div>
+
+        <!-- 縮放操作滑桿 -->
+        <div class="editor-slider-bar">
+            <span style="color:var(--text-muted);">縮小</span>
+            <input type="range" id="canvasZoomSlider" min="0.5" max="1.6" step="0.01" value="1" oninput="renderCanvasMatrix()">
+            <span style="color:var(--text-white);">放大 (手勢自由拖拉)</span>
+        </div>
+    </div>
+
+    <!-- 固定底部導航 BAR -->
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="appNavigate('profile', this)">
+            <span class="nav-icon">👤</span><span>主頁大盤</span>
+        </div>
+        <div class="nav-item" onclick="appNavigate('calendar', this)">
+            <span class="nav-icon">📅</span><span>全月日誌</span>
+        </div>
+        <div class="nav-item" onclick="appNavigate('scan', this)">
+            <span class="nav-icon">📸</span><span>數據錄入</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. 頁面切換
+    function appNavigate(tabKey, el) {
+        document.querySelectorAll('.app-container').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(`tab-${tabKey}`).classList.add('active');
+        el.classList.add('active');
+    }
+
+    // 2. 主頁聯賽容錯
+    function toggleProfileView(val) {
+        const ovr = document.getElementById('main-ovr-val');
+        const ppg = document.getElementById('main-ppg-val');
+        const fpg = document.getElementById('main-fpg-val');
+        const radar = document.getElementById('main-radar-node');
+        const logs = document.getElementById('pro-advanced-logs');
+
+        if(val === 'pro') {
+            ovr.innerText = '84'; ppg.innerText = '18.5'; fpg.innerText = '2.8';
+            radar.style.opacity = '1'; logs.style.display = 'block';
+        } else {
+            ovr.innerText = '--'; ppg.innerText = '14.5'; fpg.innerText = '4.2';
+            radar.style.opacity = '0.15'; logs.style.display = 'none';
+        }
+    }
+
+    // 3. 日曆模組互動
+    function openMatchNode() { document.getElementById('calendar-match-card').style.display = 'block'; }
+    function openCanvasEditor() { document.getElementById('canvas-editor-node').style.display = 'flex'; }
+    function closeCanvasEditor() { document.getElementById('canvas-editor-node').style.display = 'none'; }
+    
+    function simulatePhotoUpload() {
+        const box = document.getElementById('media-box');
+        box.classList.add('has-img');
+        box.style.backgroundImage = "url('https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=200&auto=format&fit=crop')";
+        document.getElementById('upload-icon').style.display = 'none';
+        document.getElementById('upload-text').style.display = 'none';
+        alert('📸 賽事時空相片已無縫載入！');
+    }
+
+    // 4. IG Story 三版切換
+    let activeSlide = 0;
+    function switchSlide(slideIndex) {
+        activeSlide = slideIndex;
+        document.querySelectorAll('.slide-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.slide-panel').forEach(p => p.classList.remove('active'));
+        
+        document.getElementById(`btn-slide-${slideIndex}`).classList.add('active');
+        document.getElementById(`slide-panel-${slideIndex}`).classList.add('active');
+        
+        // 切換版面時重置位移矩陣，防止元件飛出視野
+        panX = 0; panY = 0;
+        document.getElementById('canvasZoomSlider').value = 1;
+        renderCanvasMatrix();
+    }
+
+    // 5. 核心：數據刪減 ＋ 剩餘項目動態垂直等比例均分排列引擎
+    function removeVerticalItem(tileId) {
+        const el = document.getElementById(tileId);
+        if (el) {
+            el.style.opacity = '0';
+            el.style.transform = 'scale(0.8)';
+            setTimeout(() => {
+                el.remove();
+                
+                // JavaScript 即時動態調整佈局容器內剩餘項目的對齊與重排
+                const container = document.getElementById('vertical-stack');
+                const remaining = container.querySelectorAll('.pure-tile-stat');
+                
+                if (remaining.length === 0) {
+                    container.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:12px; padding-top:150px;">無保留項目</div>`;
+                } else if (remaining.length === 1) {
+                    // 如果只剩一項，居中大器顯示
+                    container.style.justifyContent = 'center';
+                } else {
+                    // 多項時保持垂直等比例分佈
+                    container.style.justifyContent = 'space-between';
+                }
+            }, 250);
+        }
+    }
+
+    // 6. Strava Touch 引擎：控制整塊畫布外殼的放大、縮小、平移拖拽
+    let scaleVal = 1;
+    let panX = 0, panY = 0;
+    let isCanvasDragging = false;
+    let sX, sY;
+
+    const zoomPanTarget = document.getElementById('zoom-pan-target');
+    const canvasZoomSlider = document.getElementById('canvasZoomSlider');
+
+    function renderCanvasMatrix() {
+        scaleVal = canvasZoomSlider.value;
+        zoomPanTarget.style.transform = `translate(${panX}px, ${panY}px) scale(${scaleVal})`;
+    }
+
+    function startCanvasDrag(e) {
+        // 如果觸發源是✕刪除按鈕，不啟動畫布拖拽
+        if (e.target.classList.contains('x-btn')) return;
+
+        isCanvasDragging = true;
+        const cX = e.touches ? e.touches[0].clientX : e.clientX;
+        const cY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        sX = cX - panX;
+        sY = cY - panY;
+
+        document.addEventListener('mousemove', moveCanvasDrag);
+        document.addEventListener('mouseup', endCanvasDrag);
+        document.addEventListener('touchmove', moveCanvasDrag, { passive: false });
+        document.addEventListener('touchend', endCanvasDrag);
+    }
+
+    function moveCanvasDrag(e) {
+        if (!isCanvasDragging) return;
+        if(e.cancelable) e.preventDefault();
+
+        const cX = e.touches ? e.touches[0].clientX : e.clientX;
+        const cY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        panX = cX - sX;
+        panY = cY - sY;
+        renderCanvasMatrix();
+    }
+
+    function endCanvasDrag() {
+        isCanvasDragging = false;
+        document.removeEventListener('mousemove', moveCanvasDrag);
+        document.removeEventListener('mouseup', endCanvasDrag);
+        document.removeEventListener('touchmove', moveCanvasDrag);
+        document.removeEventListener('touchend', endCanvasDrag);
+    }
+</script>
+</body>
+</html>
